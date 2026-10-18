@@ -1,0 +1,155 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Customer Billing Portal</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; }
+    </style>
+</head>
+<body class="bg-gradient-to-br from-blue-50 to-indigo-100 min-h-screen p-6">
+
+    <div class="max-w-4xl mx-auto space-y-8">
+        <!-- Header -->
+        <div class="text-center">
+            <h1 class="text-4xl font-bold text-indigo-900 drop-shadow-sm">Customer Billing Portal</h1>
+            <p class="text-gray-600 mt-2">Manage and search your customer records securely</p>
+        </div>
+
+        <div class="grid grid-cols-1 md:grid-cols-3 gap-8">
+            <!-- Left Column: Add Customer Form -->
+            <div class="md:col-span-1 bg-white p-6 rounded-2xl shadow-lg border border-gray-100 h-fit">
+                <h2 class="text-xl font-semibold text-gray-800 mb-4 border-b pb-2">Add New Record</h2>
+                <form id="customerForm" class="space-y-4">
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-1">Customer Name</label>
+                        <input type="text" id="name" required placeholder="John Doe" 
+                            class="w-full px-4 py-2 bg-gray-50 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:outline-none transition">
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-1">Bill Number</label>
+                        <input type="text" id="bill" required placeholder="INV-1001" 
+                            class="w-full px-4 py-2 bg-gray-50 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:outline-none transition">
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-1">Phone Number</label>
+                        <input type="tel" id="phone" required placeholder="9876543210" 
+                            class="w-full px-4 py-2 bg-gray-50 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:outline-none transition">
+                    </div>
+                    <button type="submit" 
+                        class="w-full bg-indigo-600 hover:bg-indigo-700 text-white font-semibold py-2.5 rounded-lg shadow-md transition duration-200 ease-in-out transform hover:-translate-y-0.5">
+                        Save Customer
+                    </button>
+                </form>
+            </div>
+
+            <!-- Right Column: Search & Display -->
+            <div class="md:col-span-2 bg-white p-6 rounded-2xl shadow-lg border border-gray-100">
+                <div class="flex justify-between items-end mb-4 border-b pb-4">
+                    <div class="w-full relative">
+                        <label class="block text-sm font-medium text-gray-700 mb-1">Search Records</label>
+                        <input type="text" id="search" placeholder="Search by Name, Phone, or Bill No..." 
+                            class="w-full px-4 py-3 bg-gray-50 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:outline-none shadow-inner text-lg">
+                    </div>
+                </div>
+
+                <!-- Customer List Container -->
+                <div id="customerList" class="space-y-3 max-h-[500px] overflow-y-auto pr-2">
+                    <!-- Javascript will populate this -->
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // --- JAVASCRIPT LOGIC ---
+
+        // 1. Initialize data from LocalStorage (or empty array if none exists)
+        let customers = JSON.parse(localStorage.getItem('billingData')) || [];
+
+        const form = document.getElementById('customerForm');
+        const searchInput = document.getElementById('search');
+        const customerList = document.getElementById('customerList');
+
+        // 2. Function to save data permanently to the browser
+        function saveData() {
+            localStorage.setItem('billingData', JSON.stringify(customers));
+        }
+
+        // 3. Function to draw the list on the screen
+        function renderCustomers(filterText = '') {
+            customerList.innerHTML = ''; // Clear current list
+
+            // Filter customers based on search input
+            const filtered = customers.filter(c => 
+                c.name.toLowerCase().includes(filterText.toLowerCase()) || 
+                c.bill.toLowerCase().includes(filterText.toLowerCase()) || 
+                c.phone.includes(filterText)
+            );
+
+            if (filtered.length === 0) {
+                customerList.innerHTML = `<p class="text-center text-gray-500 italic py-6">No records found.</p>`;
+                return;
+            }
+
+            // Create HTML for each matched customer
+            filtered.forEach((customer, index) => {
+                const card = document.createElement('div');
+                card.className = "flex justify-between items-center p-4 bg-gray-50 border border-gray-200 rounded-xl hover:shadow-md transition duration-200";
+                
+                card.innerHTML = `
+                    <div>
+                        <h3 class="font-bold text-lg text-indigo-900">${customer.name}</h3>
+                        <div class="text-sm text-gray-600 mt-1 flex space-x-4">
+                            <span><strong class="text-gray-800">Bill:</strong> ${customer.bill}</span>
+                            <span><strong class="text-gray-800">Phone:</strong> ${customer.phone}</span>
+                        </div>
+                    </div>
+                    <button onclick="deleteCustomer('${customer.id}')" class="text-red-500 hover:text-red-700 bg-red-50 hover:bg-red-100 px-3 py-1.5 rounded-lg transition font-medium text-sm">
+                        Delete
+                    </button>
+                `;
+                customerList.appendChild(card);
+            });
+        }
+
+        // 4. Listen for form submission to add new customer
+        form.addEventListener('submit', function(e) {
+            e.preventDefault(); // Prevent page reload
+
+            const newCustomer = {
+                id: Date.now().toString(), // Unique ID
+                name: document.getElementById('name').value,
+                bill: document.getElementById('bill').value,
+                phone: document.getElementById('phone').value
+            };
+
+            // Add to array, save to storage, and re-draw list
+            customers.unshift(newCustomer); // Add to top of list
+            saveData();
+            renderCustomers(searchInput.value);
+            
+            form.reset(); // Clear the form
+        });
+
+        // 5. Listen for typing in the search box
+        searchInput.addEventListener('input', function(e) {
+            renderCustomers(e.target.value);
+        });
+
+        // 6. Function to delete a customer
+        window.deleteCustomer = function(id) {
+            if(confirm("Are you sure you want to delete this record?")) {
+                customers = customers.filter(c => c.id !== id);
+                saveData();
+                renderCustomers(searchInput.value);
+            }
+        }
+
+        // Initial render when page loads
+        renderCustomers();
+    </script>
+</body>
+</html>
